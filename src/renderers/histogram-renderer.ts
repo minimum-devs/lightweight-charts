@@ -38,39 +38,49 @@ export class PaneRendererHistogram extends BitmapCoordinatesPaneRenderer {
 		this._precalculatedCache = [];
 	}
 
-	protected override _drawImpl({ context: ctx, horizontalPixelRatio, verticalPixelRatio }: BitmapCoordinatesRenderingScope): void {
-		if (this._data === null || this._data.items.length === 0 || this._data.visibleRange === null) {
-			return;
-		}
-		if (!this._precalculatedCache.length) {
-			this._fillPrecalculatedCache(horizontalPixelRatio);
-		}
+protected override _drawImpl({ context: ctx, horizontalPixelRatio, verticalPixelRatio }: BitmapCoordinatesRenderingScope): void {
+    if (this._data === null || this._data.items.length === 0 || this._data.visibleRange === null) {
+        return;
+    }
+    if (!this._precalculatedCache.length) {
+        this._fillPrecalculatedCache(horizontalPixelRatio);
+    }
 
-		const tickWidth = Math.max(1, Math.floor(verticalPixelRatio));
-		const histogramBase = Math.round((this._data.histogramBase) * verticalPixelRatio);
-		const topHistogramBase = histogramBase - Math.floor(tickWidth / 2);
-		const bottomHistogramBase = topHistogramBase + tickWidth;
+    const tickWidth = Math.max(1, Math.floor(verticalPixelRatio));
+    const histogramBase = Math.round((this._data.histogramBase) * verticalPixelRatio);
+    const topHistogramBase = histogramBase - Math.floor(tickWidth / 2);
+    const bottomHistogramBase = topHistogramBase + tickWidth;
 
-		for (let i = this._data.visibleRange.from; i < this._data.visibleRange.to; i++) {
-			const item = this._data.items[i];
-			const current = this._precalculatedCache[i - this._data.visibleRange.from];
-			const y = Math.round(item.y * verticalPixelRatio);
-			ctx.fillStyle = item.barColor;
+    const cornerRadius = 5; // You can adjust this value for desired roundness
 
-			let top: number;
-			let bottom: number;
+    for (let i = this._data.visibleRange.from; i < this._data.visibleRange.to; i++) {
+        const item = this._data.items[i];
+        const current = this._precalculatedCache[i - this._data.visibleRange.from];
+        const y = Math.round(item.y * verticalPixelRatio);
+        ctx.fillStyle = item.barColor;
 
-			if (y <= topHistogramBase) {
-				top = y;
-				bottom = bottomHistogramBase;
-			} else {
-				top = topHistogramBase;
-				bottom = y - Math.floor(tickWidth / 2) + tickWidth;
-			}
+        let top: number;
+        let bottom: number;
 
-			ctx.fillRect(current.left, top, current.right - current.left + 1, bottom - top);
-		}
-	}
+        if (y <= topHistogramBase) {
+            top = y;
+            bottom = bottomHistogramBase;
+        } else {
+            top = topHistogramBase;
+            bottom = y - Math.floor(tickWidth / 2) + tickWidth;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(current.left, bottom);
+        ctx.lineTo(current.left, top + cornerRadius);
+        ctx.arcTo(current.left, top, current.left + cornerRadius, top, cornerRadius);
+        ctx.lineTo(current.right - cornerRadius, top);
+        ctx.arcTo(current.right, top, current.right, top + cornerRadius, cornerRadius);
+        ctx.lineTo(current.right, bottom);
+        ctx.closePath();
+        ctx.fill();
+    }
+}
 
 	// eslint-disable-next-line complexity
 	private _fillPrecalculatedCache(pixelRatio: number): void {
